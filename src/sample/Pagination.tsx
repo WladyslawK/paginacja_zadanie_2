@@ -2,16 +2,26 @@ import React, {useEffect, useMemo, useState} from 'react';
 import axios from "axios";
 import s from './Pagination.module.css'
 
+type postTpe = {
+  userId: number
+  id: number
+  title: string
+  body: string
+}
+
 export const Pagination = () => {
 
-  const [posts, setPosts] = useState<{ userId: number, id: number, title: string, body: string }[]>([])
+  const [posts, setPosts] = useState<postTpe[]>([])
+
+
+  const [paginationState, paginationActions] = usePagination(posts)
+
 
   const [currentPage, setCurrentPage] = useState(1)
   const [postsPerPage, setPostsPerPage] = useState(10)
 
 
   useEffect(() => {
-
     axios.get('https://jsonplaceholder.typicode.com/posts')
       .then(res => {
         setPosts(res.data)
@@ -19,44 +29,19 @@ export const Pagination = () => {
       .catch(error => {
         console.log(error)
       })
-
-
   }, [])
 
 
   useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(1)
+    if(currentPage > pgItems[pgItems.length-1]){
+      setCurrentPage(1)
+    }
   }, [postsPerPage])
 
-
-  const totalPages = posts.length / postsPerPage
-  //if(currentPage > totalPages) setCurrentPage(1)
-  const pagination = new Array(totalPages).fill('').map((item, i) => i + 1)
-
   const changePage = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
+
       setCurrentPage(page)
-    }
   }
-
-  let pg = []
-  if (currentPage === 1) {
-    pg = [1, 2, totalPages]
-  } else if (currentPage === totalPages || currentPage === totalPages - 1) {
-    pg = [1, currentPage - 1, currentPage]
-  } else {
-    pg = [1, currentPage - 1, currentPage, currentPage + 1, totalPages]
-  }
-
-  pg = pg.map((item) => <li className={currentPage === item ? `${s.block} ${s.currentActivePage}` : s.block}
-                            onClick={() => changePage(item)} key={item}>{item}</li>)
-
-  const paginationList = pagination.map((item) => <li
-    className={currentPage === item ? `${s.block} ${s.currentActivePage}` : s.block} onClick={() => changePage(item)}
-    key={item}>{item}</li>)
-
-
-  console.log('PAGINATION: ', pagination)
 
   const lastPostIndex = currentPage * postsPerPage
   const firstPostIndex = lastPostIndex - postsPerPage
@@ -67,7 +52,7 @@ export const Pagination = () => {
 
   //hook
 
-  const pgItems = usePagination(posts.length, postsPerPage, 1, currentPage)
+  const pgItems = usePaginationLayout(posts.length, postsPerPage, 1, currentPage)
 
   console.log('USEPAGINATION: ', pgItems)
   return (
@@ -79,12 +64,19 @@ export const Pagination = () => {
       <div className={s.paginationContainer}>
 
         <ul className={s.paginationBody}>
-          <li onClick={() => changePage(currentPage - 1)} className={s.block}>{`<`}</li>
+          <li onClick={() => changePage(currentPage - 1)} className={currentPage === 1 ? `${s.block} ${s.disabled}` : s.block}>{`<`}</li>
           {
             //paginationList
-            pg
+            pgItems && pgItems.map((item, i) => {
+              if(item === DOTS) {
+                return <li key={i}>...</li>
+              }
+
+              return <li key={i} className={currentPage === item ? `${s.block} ${s.currentActivePage}` : s.block} onClick={() => changePage(+item)}>{item}</li>
+
+            })
           }
-          <li onClick={() => changePage(currentPage + 1)} className={s.block}>{`>`}</li>
+          <li onClick={() => changePage(currentPage + 1)} className={currentPage === pgItems[pgItems.length-1] ? `${s.block} ${s.disabled}` : s.block}>{`>`}</li>
         </ul>
 
         <div className={s.paginationBody}>
@@ -104,31 +96,64 @@ export const Pagination = () => {
         </div>
 
       </div>
-
-
-      <div>
-        <p>test pagination</p>
-        <ul className={s.paginationBody}>
-          <li onClick={() => changePage(currentPage - 1)} className={s.block}>{`<`}</li>
-          {
-            //paginationList
-            pgItems && pgItems.map((item, i) => {
-              if(item === DOTS) {
-                return <li key={i}>...</li>
-              }
-
-              return <li key={i} className={currentPage === item ? `${s.block} ${s.currentActivePage}` : s.block} onClick={() => changePage(+item)}>{item}</li>
-
-
-            })
-          }
-          <li onClick={() => changePage(currentPage + 1)} className={s.block}>{`>`}</li>
-        </ul>
-      </div>
     </div>
   );
 }
 
+
+const usePagination = (dataEntries: postTpe[], elementsOnPage: number = 10) => {
+
+  const [actualPageIdx, setActualPageIdx] = useState(1)
+  const [entriesOnSelectedPage, setEntriesOnSelectedPage] = useState(10)
+
+  const lastPageIdx = Math.ceil(dataEntries.length / elementsOnPage)
+
+
+  //go to firstPage callback
+  const goToFirstPage = () => setActualPageIdx(1)
+
+  //go to Page
+  const goToPage = (pageIdx: number) => setActualPageIdx(pageIdx)
+
+  //go to next Page
+  const goToNextPage = () => setActualPageIdx(prevState => prevState + 1)
+
+  //go to previous page
+  const goToPrevPage = () => setActualPageIdx(prevState => prevState + 1)
+
+  // go to last page
+  const goToLastPage = () => setActualPageIdx(lastPageIdx)
+
+  //change Entries on page
+  const changeEntriesOnPage = (entries: number) => setEntriesOnSelectedPage(entries)
+
+  type paginationStateType = {
+    actualPageIdx: number
+    lastPageIdx: number
+    entriesOnSelectedPage: number
+  }
+
+  type paginationActionsType = {
+    goToFirstPage: () => void
+    goToPrevPage: () => void
+    goToPage: (pageIdx: number) => void
+    goToNextPage: () => void
+    goToLastPage: () => void
+    changeEntriesOnPage: (entries: number) => void
+  }
+
+  const paginationState: paginationStateType = {
+    actualPageIdx,
+    lastPageIdx,
+    entriesOnSelectedPage
+  }
+  const paginationActions: paginationActionsType = {goToFirstPage, goToPrevPage, goToPage, goToNextPage, goToLastPage, changeEntriesOnPage}
+
+
+return [paginationState, paginationActions]
+
+  // return [paginationState, paginationActions]
+}
 
 type usePaginationType = {
   totalCount: number
@@ -148,10 +173,10 @@ const range = (start: number, end: number) => {
   return Array.from({length}, (_, idx) => idx + start);
 };
 
-const usePagination = (totalCount: number,
+const usePaginationLayout = (totalCount: number,
                        pageSize: number,
                        siblingCount: number,
-                       currentPage: number) => {
+                       currentPage: number): Array<string | number> => {
   const paginationRange = useMemo(() => {
     const totalPageCount = Math.ceil(totalCount / pageSize);
 
@@ -217,5 +242,5 @@ const usePagination = (totalCount: number,
     }
   }, [totalCount, pageSize, siblingCount, currentPage]);
 
-  return paginationRange;
+  return paginationRange as Array<string | number>;
 };
