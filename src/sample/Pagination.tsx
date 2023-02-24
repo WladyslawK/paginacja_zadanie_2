@@ -15,11 +15,13 @@ export const Pagination = () => {
 
 
   const [paginationState, paginationActions] = usePagination(posts)
+  const {actualPageIdx, lastPageIdx, entriesOnSelectedPage} = paginationState
+  const {goToFirstPage, goToPrevPage, goToPage, goToNextPage, goToLastPage, changeEntriesOnPage} = paginationActions
 
 
-  const [currentPage, setCurrentPage] = useState(1)
+  /*const [currentPage, setCurrentPage] = useState(1)
   const [postsPerPage, setPostsPerPage] = useState(10)
-
+*/
 
   useEffect(() => {
     axios.get('https://jsonplaceholder.typicode.com/posts')
@@ -33,18 +35,18 @@ export const Pagination = () => {
 
 
   useEffect(() => {
-    if(currentPage > pgItems[pgItems.length-1]){
-      setCurrentPage(1)
+    if(actualPageIdx > pgItems[pgItems.length-1]){
+      goToFirstPage()
     }
-  }, [postsPerPage])
+  }, [entriesOnSelectedPage])
 
   const changePage = (page: number) => {
 
-      setCurrentPage(page)
+    goToPage(page)
   }
 
-  const lastPostIndex = currentPage * postsPerPage
-  const firstPostIndex = lastPostIndex - postsPerPage
+  const lastPostIndex = actualPageIdx * entriesOnSelectedPage
+  const firstPostIndex = lastPostIndex - entriesOnSelectedPage
   const items = posts.slice(firstPostIndex, lastPostIndex)
 
   const displayItems = items.map(item => <div className={s.postContainer} key={item.id}>
@@ -52,7 +54,7 @@ export const Pagination = () => {
 
   //hook
 
-  const pgItems = usePaginationLayout(posts.length, postsPerPage, 1, currentPage)
+  const pgItems = usePaginationLayout(posts.length, entriesOnSelectedPage, 1, actualPageIdx)
 
   console.log('USEPAGINATION: ', pgItems)
   return (
@@ -64,7 +66,7 @@ export const Pagination = () => {
       <div className={s.paginationContainer}>
 
         <ul className={s.paginationBody}>
-          <li onClick={() => changePage(currentPage - 1)} className={currentPage === 1 ? `${s.block} ${s.disabled}` : s.block}>{`<`}</li>
+          <li onClick={goToPrevPage} className={actualPageIdx === 1 ? `${s.block} ${s.disabled}` : s.block}>{`<`}</li>
           {
             //paginationList
             pgItems && pgItems.map((item, i) => {
@@ -72,11 +74,11 @@ export const Pagination = () => {
                 return <li key={i}>...</li>
               }
 
-              return <li key={i} className={currentPage === item ? `${s.block} ${s.currentActivePage}` : s.block} onClick={() => changePage(+item)}>{item}</li>
+              return <li key={i} className={actualPageIdx === item ? `${s.block} ${s.currentActivePage}` : s.block} onClick={() => goToPage(+item)}>{item}</li>
 
             })
           }
-          <li onClick={() => changePage(currentPage + 1)} className={currentPage === pgItems[pgItems.length-1] ? `${s.block} ${s.disabled}` : s.block}>{`>`}</li>
+          <li onClick={goToNextPage} className={actualPageIdx === pgItems[pgItems.length-1] ? `${s.block} ${s.disabled}` : s.block}>{`>`}</li>
         </ul>
 
         <div className={s.paginationBody}>
@@ -84,8 +86,8 @@ export const Pagination = () => {
 
           <select
             name="posts"
-            value={postsPerPage}
-            onChange={(e) => setPostsPerPage(+e.currentTarget.value)}
+            value={entriesOnSelectedPage}
+            onChange={(e) => changeEntriesOnPage(+e.currentTarget.value)}
             className={s.select}
           >
             <option value={10}>10</option>
@@ -101,7 +103,22 @@ export const Pagination = () => {
 }
 
 
-const usePagination = (dataEntries: postTpe[], elementsOnPage: number = 10) => {
+type paginationStateType = {
+  actualPageIdx: number
+  lastPageIdx: number
+  entriesOnSelectedPage: number
+}
+
+type paginationActionsType = {
+  goToFirstPage: () => void
+  goToPrevPage: () => void
+  goToPage: (pageIdx: number) => void
+  goToNextPage: () => void
+  goToLastPage: () => void
+  changeEntriesOnPage: (entries: number) => void
+}
+
+const usePagination = (dataEntries: postTpe[], elementsOnPage: number = 10): [paginationState: paginationStateType, paginationActions: paginationActionsType] => {
 
   const [actualPageIdx, setActualPageIdx] = useState(1)
   const [entriesOnSelectedPage, setEntriesOnSelectedPage] = useState(10)
@@ -119,28 +136,13 @@ const usePagination = (dataEntries: postTpe[], elementsOnPage: number = 10) => {
   const goToNextPage = () => setActualPageIdx(prevState => prevState + 1)
 
   //go to previous page
-  const goToPrevPage = () => setActualPageIdx(prevState => prevState + 1)
+  const goToPrevPage = () => setActualPageIdx(prevState => prevState - 1)
 
   // go to last page
   const goToLastPage = () => setActualPageIdx(lastPageIdx)
 
   //change Entries on page
   const changeEntriesOnPage = (entries: number) => setEntriesOnSelectedPage(entries)
-
-  type paginationStateType = {
-    actualPageIdx: number
-    lastPageIdx: number
-    entriesOnSelectedPage: number
-  }
-
-  type paginationActionsType = {
-    goToFirstPage: () => void
-    goToPrevPage: () => void
-    goToPage: (pageIdx: number) => void
-    goToNextPage: () => void
-    goToLastPage: () => void
-    changeEntriesOnPage: (entries: number) => void
-  }
 
   const paginationState: paginationStateType = {
     actualPageIdx,
