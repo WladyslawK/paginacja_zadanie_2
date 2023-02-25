@@ -1,11 +1,11 @@
-import React from 'react';
-import './App.css';
-import {Pagination} from "./components/pagination/Pagination";
+import React from 'react'
+import './App.css'
+import {Sample} from "./sample/Sample"
 
 function App() {
   return (
     <div className="App">
-      <Pagination/>
+      <Sample/>
     </div>
   );
 }
