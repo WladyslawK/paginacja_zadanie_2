@@ -1,13 +1,13 @@
 import {useState} from "react";
-import {postTpe} from "./Pagination";
+import {postTpe} from "../sample/Sample";
 
-type paginationStateType = {
+export type paginationStateType = {
   actualPageIdx: number
   lastPageIdx: number
   entriesOnSelectedPage: number
 }
 
-type paginationActionsType = {
+export type paginationActionsType = {
   goToFirstPage: () => void
   goToPrevPage: () => void
   goToPage: (pageIdx: number) => void
